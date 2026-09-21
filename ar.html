@@ -10,12 +10,14 @@
   html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
   .arjs-video { position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; object-fit: cover !important; z-index: 0 !important; }
   a-scene, .a-canvas { position: fixed !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; z-index: 1 !important; background: transparent !important; background-color: transparent !important; }
-  .ar-video { position: absolute; width: 1px; height: 1px; left: -9999px; top: -9999px; opacity: 0.01; }
+  .hidden-video { position: absolute; width: 1px; height: 1px; left: -9999px; top: -9999px; opacity: 0.01; }
   #backBtn { position: fixed; top: 12px; left: 12px; z-index: 999999; padding: 10px 16px; border-radius: 20px; background: #000; color: #fff; border: 1px solid #4fc3f7; font-family: Arial, sans-serif; font-size: 14px; cursor: pointer; }
+  #playBtn { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); z-index: 999999; padding: 12px 24px; border-radius: 25px; background: #4fc3f7; color: #0d1b2a; border: none; font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; cursor: pointer; display: none; }
 </style>
 </head>
 <body>
   <button id="backBtn" onclick="window.location.replace('index.html')">← Выйти</button>
+  <button id="playBtn">▶️ Нажмите, чтобы включить видео</button>
 
   <a-scene
     embedded
@@ -24,71 +26,106 @@
     renderer="logarithmicDepthBuffer: true; antialias: true; alpha: true; premultipliedAlpha: false;"
     style="width:100%; height:100%; background: transparent;">
 
-    <a-marker id="marker1" type="pattern" url="1-building.patt" visible="false">
-      <a-video src="#v1" position="0 0 0" width="3" height="1.7" rotation="-90 0 0"></a-video>
-    </a-marker>
-    <a-marker id="marker2" type="pattern" url="2-bridge.patt" visible="false">
-      <a-video src="#v2" position="0 0 0" width="3" height="1.7" rotation="-90 0 0"></a-video>
-    </a-marker>
-    <a-marker id="marker3" type="pattern" url="3-electric.patt" visible="false">
-      <a-video src="#v3" position="0 0 0" width="3" height="1.7" rotation="-90 0 0"></a-video>
-    </a-marker>
-    <a-marker id="marker4" type="pattern" url="4-robot.patt" visible="false">
-      <a-video src="#v4" position="0 0 0" width="3" height="1.7" rotation="-90 0 0"></a-video>
-    </a-marker>
-    <a-marker id="marker5" type="pattern" url="5-vehicles.patt" visible="false">
-      <a-video src="#v5" position="0 0 0" width="3" height="1.7" rotation="-90 0 0"></a-video>
-    </a-marker>
-    <a-marker id="marker6" type="pattern" url="6-mine.patt" visible="false">
-      <a-video src="#v6" position="0 0 0" width="3" height="1.7" rotation="-90 0 0"></a-video>
-    </a-marker>
-
+    <a-entity id="markerContainer"></a-entity>
     <a-entity camera></a-entity>
   </a-scene>
 
-  <video id="v1" class="ar-video" src="1-building.mp4" preload="auto" loop muted playsinline webkit-playsinline></video>
-  <video id="v2" class="ar-video" src="2-bridge.mp4" preload="auto" loop muted playsinline webkit-playsinline></video>
-  <video id="v3" class="ar-video" src="3-electric.mp4" preload="auto" loop muted playsinline webkit-playsinline></video>
-  <video id="v4" class="ar-video" src="4-robot.mp4" preload="auto" loop muted playsinline webkit-playsinline></video>
-  <video id="v5" class="ar-video" src="5-vehicles.mp4" preload="auto" loop muted playsinline webkit-playsinline></video>
-  <video id="v6" class="ar-video" src="6-mine.mp4" preload="auto" loop muted playsinline webkit-playsinline></video>
-
   <script>
-    // Читаем номер маркера из адреса: ar.html?m=3
-    var params = new URLSearchParams(window.location.search);
-    var m = params.get('m') || '1';
-    var activeMarkerId = 'marker' + m;
-    var activeVideoId = 'v' + m;
+    var markers = {
+      '1-building': '1-building.mp4',
+      '2-bridge': '2-bridge.mp4',
+      '3-electric': '3-electric.mp4',
+      '4-robot': '4-robot.mp4',
+      '5-vehicles': '5-vehicles.mp4',
+      '6-mine': '6-mine.mp4'
+    };
 
-    // Показываем только нужный маркер
-    document.addEventListener('DOMContentLoaded', function() {
-      var marker = document.getElementById(activeMarkerId);
-      if (marker) marker.setAttribute('visible', 'true');
+    var container = document.getElementById('markerContainer');
+    var activeVideo = null;
+    var activeMarkerName = null;
+    var playBtn = document.getElementById('playBtn');
+
+    // Создаём все 6 маркеров (только паттерны, без видео)
+    Object.keys(markers).forEach(function(pattName) {
+      var marker = document.createElement('a-marker');
+      marker.setAttribute('type', 'pattern');
+      marker.setAttribute('url', pattName + '.patt');
+      marker.setAttribute('id', 'marker-' + pattName);
+
+      // ПРИ ПОЯВЛЕНИИ МАРКЕРА — создаём видео
+      marker.addEventListener('markerFound', function() {
+        if (activeMarkerName === pattName && activeVideo) return;
+
+        // Останавливаем и удаляем предыдущее видео
+        if (activeVideo) {
+          try { activeVideo.pause(); } catch(e){}
+          if (activeVideo.parentNode) activeVideo.parentNode.removeChild(activeVideo);
+          activeVideo = null;
+        }
+        document.querySelectorAll('a-video').forEach(function(el) {
+          if (el.parentNode) el.parentNode.removeChild(el);
+        });
+
+        // Создаём новое видео (без звука — чтобы обойти блокировку автоплея)
+        var video = document.createElement('video');
+        video.src = markers[pattName];
+        video.loop = true;
+        video.muted = true; // КЛЮЧЕВОЙ МОМЕНТ: видео без звука!
+        video.playsInline = true;
+        video.setAttribute('webkit-playsinline', '');
+        video.className = 'hidden-video';
+        document.body.appendChild(video);
+        activeVideo = video;
+        activeMarkerName = pattName;
+
+        // Пытаемся запустить видео автоматически
+        video.play().then(function() {
+          // Успешно запустилось — кнопка не нужна
+          playBtn.style.display = 'none';
+        }).catch(function(e) {
+          // Браузер заблокировал автоплей — показываем кнопку
+          console.log('Автоплей заблокирован, показываем кнопку');
+          playBtn.style.display = 'block';
+          playBtn.onclick = function() {
+            video.play().catch(function(){});
+            playBtn.style.display = 'none';
+          };
+        });
+
+        // Привязываем a-video к маркеру
+        var aVideo = document.createElement('a-video');
+        aVideo.setAttribute('src', video);
+        aVideo.setAttribute('position', '0 0 0');
+        aVideo.setAttribute('width', '3');
+        aVideo.setAttribute('height', '1.7');
+        aVideo.setAttribute('rotation', '-90 0 0');
+        marker.appendChild(aVideo);
+      });
+
+      // ПРИ УХОДЕ МАРКЕРА — удаляем видео
+      marker.addEventListener('markerLost', function() {
+        if (activeMarkerName !== pattName) return;
+        var aVid = marker.querySelector('a-video');
+        if (aVid && aVid.parentNode) aVid.parentNode.removeChild(aVid);
+        if (activeVideo) {
+          try { activeVideo.pause(); } catch(e){}
+          if (activeVideo.parentNode) activeVideo.parentNode.removeChild(activeVideo);
+          activeVideo = null;
+        }
+        activeMarkerName = null;
+        playBtn.style.display = 'none';
+      });
+
+      container.appendChild(marker);
     });
 
-    // Останавливаем все видео, кроме активного
-    function stopOtherVideos() {
-      for (var i = 1; i <= 6; i++) {
-        var v = document.getElementById('v' + i);
-        if (v && ('v' + i) !== activeVideoId) {
-          v.pause();
-        }
-      }
-    }
-
+    // Растягиваем видеофон камеры
     function fixARVideo() {
-      stopOtherVideos();
       document.querySelectorAll('video').forEach(function(v) {
-        if (v.id && /^v\d$/.test(v.id)) {
-          if (v.id === activeVideoId) {
-            v.muted = true; v.loop = true;
-            v.play().catch(function(e){ console.log('play:', e); });
-          }
-        } else {
-          v.style.position='fixed'; v.style.top='0'; v.style.left='0';
-          v.style.width='100vw'; v.style.height='100vh';
-          v.style.objectFit='cover'; v.style.zIndex='0';
-        }
+        if (v.src && v.src.indexOf('.mp4') !== -1) return;
+        v.style.position='fixed'; v.style.top='0'; v.style.left='0';
+        v.style.width='100vw'; v.style.height='100vh';
+        v.style.objectFit='cover'; v.style.zIndex='0';
       });
       document.querySelectorAll('canvas').forEach(function(c) {
         c.style.position='fixed'; c.style.top='0'; c.style.left='0';
@@ -96,17 +133,11 @@
         c.style.zIndex='1'; c.style.background='transparent'; c.style.backgroundColor='transparent';
       });
     }
-
     setTimeout(fixARVideo, 500);
     setTimeout(fixARVideo, 1500);
     setTimeout(fixARVideo, 3000);
     window.addEventListener('load', fixARVideo);
     window.addEventListener('resize', fixARVideo);
-
-    document.body.addEventListener('touchstart', function() {
-      var v = document.getElementById(activeVideoId);
-      if (v) v.play().catch(function(){});
-    }, { once: true });
   </script>
 </body>
 </html>
