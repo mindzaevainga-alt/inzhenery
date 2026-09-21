@@ -10,20 +10,28 @@
   html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
   .arjs-video { position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; object-fit: cover !important; z-index: 0 !important; }
   a-scene, .a-canvas { position: fixed !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; z-index: 1 !important; background: transparent !important; background-color: transparent !important; }
-  .hidden-video { position: absolute; width: 1px; height: 1px; left: -9999px; top: -9999px; opacity: 0.01; }
-  /* Накладка для видео поверх AR — обычный HTML-элемент */
   #videoOverlay {
     position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    width: 80vw; max-width: 600px; height: auto;
+    width: 90vw; max-width: 700px; height: auto;
     z-index: 999998; display: none;
     background: #000; border: 2px solid #4fc3f7; border-radius: 8px;
+  }
+  #loadingText {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    z-index: 999997; display: none;
+    background: rgba(0,0,0,0.85); color: #4fc3f7;
+    border: 2px solid #4fc3f7; border-radius: 12px;
+    padding: 20px 30px; font-family: Arial, sans-serif;
+    font-size: 16px; text-align: center;
   }
   #backBtn { position: fixed; top: 12px; left: 12px; z-index: 999999; padding: 10px 16px; border-radius: 20px; background: #000; color: #fff; border: 1px solid #4fc3f7; font-family: Arial, sans-serif; font-size: 14px; cursor: pointer; }
 </style>
 </head>
 <body>
   <button id="backBtn" onclick="window.location.replace('index.html')">← Выйти</button>
-  <video id="videoOverlay" controls playsinline webkit-playsinline></video>
+
+  <div id="loadingText">Загрузка видео…<br>Подождите пару секунд</div>
+  <video id="videoOverlay" controls playsinline webkit-playsinline preload="auto"></video>
 
   <a-scene
     embedded
@@ -53,6 +61,7 @@
     };
 
     var overlay = document.getElementById('videoOverlay');
+    var loading = document.getElementById('loadingText');
     var currentMarker = null;
 
     Object.keys(markerToVideo).forEach(function(markerId) {
@@ -63,9 +72,27 @@
         if (currentMarker === markerId) return;
         currentMarker = markerId;
 
+        // Показываем надпись загрузки
+        loading.style.display = 'block';
+        overlay.style.display = 'none';
+
+        // Сбрасываем видео
+        overlay.pause();
+        overlay.removeAttribute('src');
+        overlay.load();
+
+        // Ставим новый src и грузим
         overlay.src = markerToVideo[markerId];
-        overlay.style.display = 'block';
-        overlay.play().catch(function(e){ console.log('play:', e); });
+        overlay.load();
+
+        // Ждём, пока видео загрузится
+        var onCanPlay = function() {
+          overlay.removeEventListener('canplay', onCanPlay);
+          loading.style.display = 'none';
+          overlay.style.display = 'block';
+          overlay.play().catch(function(e){ console.log('play:', e); });
+        };
+        overlay.addEventListener('canplay', onCanPlay);
       });
 
       marker.addEventListener('markerLost', function() {
@@ -73,6 +100,7 @@
         currentMarker = null;
         overlay.pause();
         overlay.style.display = 'none';
+        loading.style.display = 'none';
       });
     });
 
