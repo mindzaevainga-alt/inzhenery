@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>AR</title>
+<script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
+<style>
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
+  .arjs-video { position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; object-fit: cover !important; z-index: 0 !important; }
+  a-scene, .a-canvas { position: fixed !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; z-index: 1 !important; background: transparent !important; background-color: transparent !important; }
+  .ar-video { position: absolute; width: 1px; height: 1px; left: -9999px; top: -9999px; opacity: 0.01; }
+  #backBtn { position: fixed; top: 12px; left: 12px; z-index: 999999; padding: 10px 16px; border-radius: 20px; background: #000; color: #fff; border: 1px solid #4fc3f7; font-family: Arial, sans-serif; font-size: 14px; cursor: pointer; }
+</style>
+</head>
+<body>
+  <button id="backBtn" onclick="window.location.replace('index.html')">← Выйти</button>
+
+  <a-scene
+    embedded
+    arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3; sourceWidth: 640; sourceHeight: 480; displayWidth: 640; displayHeight: 480;"
+    vr-mode-ui="enabled: false"
+    renderer="logarithmicDepthBuffer: true; antialias: true; alpha: true; premultipliedAlpha: false;"
+    style="width:100%; height:100%; background: transparent;">
+
+    <a-marker type="pattern" url="5-vehicles.patt">
+      <a-video src="#v5" position="0 0 0" width="3" height="1.7" rotation="-90 0 0"></a-video>
+    </a-marker>
+
+    <a-entity camera></a-entity>
+  </a-scene>
+
+  <video id="v5" class="ar-video" src="5-vehicles.mp4" preload="auto" loop muted playsinline webkit-playsinline></video>
+
+  <script>
+    function fixARVideo() {
+      document.querySelectorAll('video').forEach(function(v) {
+        if (v.id && /^v\d$/.test(v.id)) {
+          v.muted = true; v.loop = true;
+          v.play().catch(function(e){ console.log('play:', e); });
+        } else {
+          v.style.position='fixed'; v.style.top='0'; v.style.left='0';
+          v.style.width='100vw'; v.style.height='100vh';
+          v.style.objectFit='cover'; v.style.zIndex='0';
+        }
+      });
+      document.querySelectorAll('canvas').forEach(function(c) {
+        c.style.position='fixed'; c.style.top='0'; c.style.left='0';
+        c.style.width='100vw'; c.style.height='100vh';
+        c.style.zIndex='1'; c.style.background='transparent'; c.style.backgroundColor='transparent';
+      });
+    }
+    setTimeout(fixARVideo, 500);
+    setTimeout(fixARVideo, 1500);
+    setTimeout(fixARVideo, 3000);
+    window.addEventListener('load', fixARVideo);
+    window.addEventListener('resize', fixARVideo);
+    document.body.addEventListener('touchstart', function() {
+      document.querySelectorAll('video').forEach(function(v) {
+        if (v.id && /^v\d$/.test(v.id)) v.play().catch(function(){});
+      });
+    }, { once: true });
+  </script>
+</body>
+</html>
