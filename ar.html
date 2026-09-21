@@ -8,30 +8,47 @@
 <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
 <style>
   html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
-  .arjs-video { position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; object-fit: cover !important; z-index: 0 !important; }
-  a-scene, .a-canvas { position: fixed !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; z-index: 1 !important; background: transparent !important; background-color: transparent !important; }
-  #videoOverlay {
-    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    width: 90vw; max-width: 700px; height: auto;
-    z-index: 999998; display: none;
-    background: #000; border: 2px solid #4fc3f7; border-radius: 8px;
+
+  .arjs-video {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    object-fit: cover !important;
+    z-index: 0 !important;
   }
-  #loadingText {
-    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    z-index: 999997; display: none;
-    background: rgba(0,0,0,0.85); color: #4fc3f7;
-    border: 2px solid #4fc3f7; border-radius: 12px;
-    padding: 20px 30px; font-family: Arial, sans-serif;
-    font-size: 16px; text-align: center;
+
+  a-scene, .a-canvas {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 1 !important;
+    background: transparent !important;
+    background-color: transparent !important;
   }
-  #backBtn { position: fixed; top: 12px; left: 12px; z-index: 999999; padding: 10px 16px; border-radius: 20px; background: #000; color: #fff; border: 1px solid #4fc3f7; font-family: Arial, sans-serif; font-size: 14px; cursor: pointer; }
+
+  .ar-video {
+    position: absolute;
+    width: 1px; height: 1px;
+    left: -9999px; top: -9999px;
+    opacity: 0.01;
+  }
+
+  #backBtn {
+    position: fixed; top: 12px; left: 12px; z-index: 999999;
+    padding: 10px 16px; border-radius: 20px;
+    background: #000; color: #fff;
+    border: 1px solid #4fc3f7;
+    font-family: Arial, sans-serif; font-size: 14px; cursor: pointer;
+  }
 </style>
 </head>
 <body>
-  <button id="backBtn" onclick="window.location.replace('index.html')">← Выйти</button>
 
-  <div id="loadingText">Загрузка видео…<br>Подождите пару секунд</div>
-  <video id="videoOverlay" controls playsinline webkit-playsinline preload="auto"></video>
+  <button id="backBtn" onclick="window.location.replace('index.html')">← Выйти</button>
 
   <a-scene
     embedded
@@ -40,88 +57,78 @@
     renderer="logarithmicDepthBuffer: true; antialias: true; alpha: true; premultipliedAlpha: false;"
     style="width:100%; height:100%; background: transparent;">
 
-    <a-marker type="pattern" url="1-building.patt" id="m1"></a-marker>
-    <a-marker type="pattern" url="2-bridge.patt" id="m2"></a-marker>
-    <a-marker type="pattern" url="3-electric.patt" id="m3"></a-marker>
-    <a-marker type="pattern" url="4-robot.patt" id="m4"></a-marker>
-    <a-marker type="pattern" url="5-vehicles.patt" id="m5"></a-marker>
-    <a-marker type="pattern" url="6-mine.patt" id="m6"></a-marker>
+    <a-marker type="pattern" url="1-building.patt">
+      <a-video src="#v1" position="0 0 0" width="3" height="1.7" rotation="-90 0 0"></a-video>
+    </a-marker>
+    <a-marker type="pattern" url="2-bridge.patt">
+      <a-video src="#v2" position="0 0 0" width="3" height="1.7" rotation="-90 0 0"></a-video>
+    </a-marker>
+    <a-marker type="pattern" url="3-electric.patt">
+      <a-video src="#v3" position="0 0 0" width="3" height="1.7" rotation="-90 0 0"></a-video>
+    </a-marker>
+    <a-marker type="pattern" url="4-robot.patt">
+      <a-video src="#v4" position="0 0 0" width="3" height="1.7" rotation="-90 0 0"></a-video>
+    </a-marker>
+    <a-marker type="pattern" url="5-vehicles.patt">
+      <a-video src="#v5" position="0 0 0" width="3" height="1.7" rotation="-90 0 0"></a-video>
+    </a-marker>
+    <a-marker type="pattern" url="6-mine.patt">
+      <a-video src="#v6" position="0 0 0" width="3" height="1.7" rotation="-90 0 0"></a-video>
+    </a-marker>
 
     <a-entity camera></a-entity>
   </a-scene>
 
+  <video id="v1" class="ar-video" src="1-building.mp4" preload="auto" loop muted playsinline webkit-playsinline></video>
+  <video id="v2" class="ar-video" src="2-bridge.mp4" preload="auto" loop muted playsinline webkit-playsinline></video>
+  <video id="v3" class="ar-video" src="3-electric.mp4" preload="auto" loop muted playsinline webkit-playsinline></video>
+  <video id="v4" class="ar-video" src="4-robot.mp4" preload="auto" loop muted playsinline webkit-playsinline></video>
+  <video id="v5" class="ar-video" src="5-vehicles.mp4" preload="auto" loop muted playsinline webkit-playsinline></video>
+  <video id="v6" class="ar-video" src="6-mine.mp4" preload="auto" loop muted playsinline webkit-playsinline></video>
+
   <script>
-    var markerToVideo = {
-      'm1': '1-building.mp4',
-      'm2': '2-bridge.mp4',
-      'm3': '3-electric.mp4',
-      'm4': '4-robot.mp4',
-      'm5': '5-vehicles.mp4',
-      'm6': '6-mine.mp4'
-    };
-
-    var overlay = document.getElementById('videoOverlay');
-    var loading = document.getElementById('loadingText');
-    var currentMarker = null;
-
-    Object.keys(markerToVideo).forEach(function(markerId) {
-      var marker = document.getElementById(markerId);
-      if (!marker) return;
-
-      marker.addEventListener('markerFound', function() {
-        if (currentMarker === markerId) return;
-        currentMarker = markerId;
-
-        // Показываем надпись загрузки
-        loading.style.display = 'block';
-        overlay.style.display = 'none';
-
-        // Сбрасываем видео
-        overlay.pause();
-        overlay.removeAttribute('src');
-        overlay.load();
-
-        // Ставим новый src и грузим
-        overlay.src = markerToVideo[markerId];
-        overlay.load();
-
-        // Ждём, пока видео загрузится
-        var onCanPlay = function() {
-          overlay.removeEventListener('canplay', onCanPlay);
-          loading.style.display = 'none';
-          overlay.style.display = 'block';
-          overlay.play().catch(function(e){ console.log('play:', e); });
-        };
-        overlay.addEventListener('canplay', onCanPlay);
-      });
-
-      marker.addEventListener('markerLost', function() {
-        if (currentMarker !== markerId) return;
-        currentMarker = null;
-        overlay.pause();
-        overlay.style.display = 'none';
-        loading.style.display = 'none';
-      });
-    });
-
     function fixARVideo() {
-      document.querySelectorAll('video').forEach(function(v) {
-        if (v.id === 'videoOverlay') return;
-        v.style.position='fixed'; v.style.top='0'; v.style.left='0';
-        v.style.width='100vw'; v.style.height='100vh';
-        v.style.objectFit='cover'; v.style.zIndex='0';
+      var arVideos = document.querySelectorAll('video');
+      arVideos.forEach(function(v) {
+        if (v.id && /^v\d$/.test(v.id)) {
+          v.muted = true;
+          v.loop = true;
+          v.play().catch(function(e){ console.log('play ' + v.id + ':', e); });
+        } else {
+          v.style.position = 'fixed';
+          v.style.top = '0';
+          v.style.left = '0';
+          v.style.width = '100vw';
+          v.style.height = '100vh';
+          v.style.objectFit = 'cover';
+          v.style.zIndex = '0';
+        }
       });
       document.querySelectorAll('canvas').forEach(function(c) {
-        c.style.position='fixed'; c.style.top='0'; c.style.left='0';
-        c.style.width='100vw'; c.style.height='100vh';
-        c.style.zIndex='1'; c.style.background='transparent'; c.style.backgroundColor='transparent';
+        c.style.position = 'fixed';
+        c.style.top = '0';
+        c.style.left = '0';
+        c.style.width = '100vw';
+        c.style.height = '100vh';
+        c.style.zIndex = '1';
+        c.style.background = 'transparent';
+        c.style.backgroundColor = 'transparent';
       });
     }
+
     setTimeout(fixARVideo, 500);
     setTimeout(fixARVideo, 1500);
     setTimeout(fixARVideo, 3000);
     window.addEventListener('load', fixARVideo);
     window.addEventListener('resize', fixARVideo);
+
+    document.body.addEventListener('touchstart', function() {
+      for (var i = 1; i <= 6; i++) {
+        var v = document.getElementById('v' + i);
+        if (v) { v.play().catch(function(){}); }
+      }
+    }, { once: true });
   </script>
+
 </body>
 </html>
