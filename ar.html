@@ -12,12 +12,14 @@
   a-scene, .a-canvas { position: fixed !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; z-index: 1 !important; background: transparent !important; background-color: transparent !important; }
   .hidden-video { position: absolute; width: 1px; height: 1px; left: -9999px; top: -9999px; opacity: 0.01; }
   #backBtn { position: fixed; top: 12px; left: 12px; z-index: 999999; padding: 10px 16px; border-radius: 20px; background: #000; color: #fff; border: 1px solid #4fc3f7; font-family: Arial, sans-serif; font-size: 14px; cursor: pointer; }
-  #playBtn { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); z-index: 999999; padding: 12px 24px; border-radius: 25px; background: #4fc3f7; color: #0d1b2a; border: none; font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; cursor: pointer; display: none; }
+  #playBtn { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); z-index: 999999; padding: 14px 28px; border-radius: 25px; background: #4fc3f7; color: #0d1b2a; border: none; font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; cursor: pointer; display: none; }
+  #tapHint { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 999998; padding: 16px 24px; border-radius: 12px; background: rgba(0,0,0,0.7); color: #4fc3f7; border: 2px solid #4fc3f7; font-family: Arial, sans-serif; font-size: 15px; text-align: center; pointer-events: none; }
 </style>
 </head>
 <body>
   <button id="backBtn" onclick="window.location.replace('index.html')">← Выйти</button>
-  <button id="playBtn">▶️ Нажмите, чтобы включить видео</button>
+  <button id="playBtn">▶️ Включить видео</button>
+  <div id="tapHint">Коснитесь экрана,<br>чтобы разрешить видео</div>
 
   <a-scene
     embedded
@@ -44,19 +46,41 @@
     var activeVideo = null;
     var activeMarkerName = null;
     var playBtn = document.getElementById('playBtn');
+    var tapHint = document.getElementById('tapHint');
+    var userInteracted = false;
 
-    // Создаём все 6 маркеров (только паттерны, без видео)
+    // Первое касание экрана — разрешает автоплей
+    document.body.addEventListener('touchstart', function() {
+      userInteracted = true;
+      tapHint.style.display = 'none';
+      if (activeVideo && activeVideo.paused) {
+        activeVideo.play().catch(function(e){ console.log('play on tap:', e); });
+      }
+    }, { once: false });
+
+    document.body.addEventListener('click', function() {
+      userInteracted = true;
+      tapHint.style.display = 'none';
+      if (activeVideo && activeVideo.paused) {
+        activeVideo.play().catch(function(e){ console.log('play on click:', e); });
+      }
+    }, { once: false });
+
     Object.keys(markers).forEach(function(pattName) {
       var marker = document.createElement('a-marker');
       marker.setAttribute('type', 'pattern');
       marker.setAttribute('url', pattName + '.patt');
-      marker.setAttribute('id', 'marker-' + pattName);
 
-      // ПРИ ПОЯВЛЕНИИ МАРКЕРА — создаём видео
       marker.addEventListener('markerFound', function() {
-        if (activeMarkerName === pattName && activeVideo) return;
+        if (activeMarkerName === pattName && activeVideo) {
+          // Уже играет — просто пробуем возобновить, если на паузе
+          if (activeVideo.paused) {
+            activeVideo.play().catch(function(){});
+          }
+          return;
+        }
 
-        // Останавливаем и удаляем предыдущее видео
+        // Удаляем предыдущее
         if (activeVideo) {
           try { activeVideo.pause(); } catch(e){}
           if (activeVideo.parentNode) activeVideo.parentNode.removeChild(activeVideo);
@@ -66,31 +90,18 @@
           if (el.parentNode) el.parentNode.removeChild(el);
         });
 
-        // Создаём новое видео (без звука — чтобы обойти блокировку автоплея)
+        // Создаём новое видео
         var video = document.createElement('video');
         video.src = markers[pattName];
         video.loop = true;
-        video.muted = true; // КЛЮЧЕВОЙ МОМЕНТ: видео без звука!
+        video.muted = true;
         video.playsInline = true;
         video.setAttribute('webkit-playsinline', '');
+        video.setAttribute('playsinline', '');
         video.className = 'hidden-video';
         document.body.appendChild(video);
         activeVideo = video;
         activeMarkerName = pattName;
-
-        // Пытаемся запустить видео автоматически
-        video.play().then(function() {
-          // Успешно запустилось — кнопка не нужна
-          playBtn.style.display = 'none';
-        }).catch(function(e) {
-          // Браузер заблокировал автоплей — показываем кнопку
-          console.log('Автоплей заблокирован, показываем кнопку');
-          playBtn.style.display = 'block';
-          playBtn.onclick = function() {
-            video.play().catch(function(){});
-            playBtn.style.display = 'none';
-          };
-        });
 
         // Привязываем a-video к маркеру
         var aVideo = document.createElement('a-video');
@@ -100,9 +111,31 @@
         aVideo.setAttribute('height', '1.7');
         aVideo.setAttribute('rotation', '-90 0 0');
         marker.appendChild(aVideo);
+
+        // Ждём загрузки данных, потом пробуем play
+        video.addEventListener('loadeddata', function() {
+          setTimeout(function() {
+            video.play().then(function() {
+              // Заиграло — скрываем кнопку и подсказку
+              playBtn.style.display = 'none';
+              tapHint.style.display = 'none';
+            }).catch(function(e) {
+              console.log('Автоплей заблокирован:', e);
+              // Показываем кнопку — если пользователь уже касался, автозапуск пойдёт сразу
+              if (userInteracted) {
+                playBtn.style.display = 'block';
+              } else {
+                playBtn.style.display = 'block';
+                tapHint.style.display = 'block';
+              }
+            });
+          }, 300);
+        });
+
+        // Резервный вызов play сразу после загрузки
+        video.load();
       });
 
-      // ПРИ УХОДЕ МАРКЕРА — удаляем видео
       marker.addEventListener('markerLost', function() {
         if (activeMarkerName !== pattName) return;
         var aVid = marker.querySelector('a-video');
@@ -118,6 +151,18 @@
 
       container.appendChild(marker);
     });
+
+    // Кнопка play — принудительный запуск
+    playBtn.onclick = function() {
+      if (activeVideo) {
+        activeVideo.play().then(function() {
+          playBtn.style.display = 'none';
+          tapHint.style.display = 'none';
+        }).catch(function(e) {
+          console.log('Ошибка запуска:', e);
+        });
+      }
+    };
 
     // Растягиваем видеофон камеры
     function fixARVideo() {
